@@ -1,0 +1,13 @@
+import e from "express";
+import { getUser, getUsers, login, logout, register, updateUser } from "../Controllers/authController.js";
+import upload from "../middlewares/upoad.js";
+
+export let authRoute = e.Router();
+
+authRoute.post("/register", upload.single("profilePic"), register);
+authRoute.post("/login", login);
+authRoute.post("/updateUser/:id", updateUser)
+
+authRoute.get("/logout", logout);
+authRoute.get("/getUser/:username", getUser);
+authRoute.get("/getUsers", getUsers);
