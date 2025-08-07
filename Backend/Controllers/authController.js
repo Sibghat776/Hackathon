@@ -3,6 +3,8 @@ import { createError, createSuccess } from "../utils/commonFunctions.js"
 import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
 import { uploadToCloudinary } from "../utils/cloudinary.js"
+import { generateOTP, sendEmail } from "../utils/sendEmail.js"
+import { Otp } from "../Models/Otp.js"
 
 export const register = async (req, res, next) => {
     try {
@@ -45,10 +47,15 @@ export const register = async (req, res, next) => {
             email: req.body.email,
             password: hash
         });
-
+        const otp = generateOTP();
+        await Otp.create({
+            email: req.body.email,
+            otp: otp,
+            expiresAt: Date.now() + 10 * 60 * 1000 // OTP valid for 10 minutes
+        });
         await newUser.save();
-
-        const successResponse = createSuccess(200, "User Registered Successfully");
+        sendEmail(req.body.email, "Thanks for Signing up!", `Welcome to My App\n Hello ${newUser.firstName},\n\nThank you for registering with Sibghat Application! \\n\nYour OTP for verification is: ${otp}\n\nBest regards,\nSibghat Ullah`);
+        const successResponse = createSuccess(200, "OTP has been sent to your email. Please verify your account.");
         res.status(200).json({
             ...successResponse,
             data: newUser
@@ -58,6 +65,27 @@ export const register = async (req, res, next) => {
         next(error);
     }
 };
+
+export const verifyOtp = async (req, res) => {
+    const { email, otp } = req.body;
+    console.log(email, otp, "email and otp in verifyOtp");
+    try {
+        const otpRecord = await Otp.findOne({ email, otp });
+
+        if (!otpRecord) {
+            return res.status(400).json({ success: false, message: "Invalid or expired OTP" });
+        }
+
+        // OTP is valid
+        await Otp.deleteMany({ email }); // delete all OTPs for this email
+
+        res.status(200).json({ success: true, message: "OTP verified successfully" });
+    } catch (error) {
+        console.error("Error verifying OTP:", error);
+        res.status(500).json({ success: false, message: "Server error" });
+    }
+};
+
 
 export const login = async (req, res) => {
     try {
@@ -158,7 +186,7 @@ export const updateUser = async (req, res, next) => {
         }
 
         const updatedUser = await Users.findByIdAndUpdate(userId, updatedData, { new: true });
-            
+
         if (!updatedUser) {
             return next(createError(404, "User not found!"));
         }

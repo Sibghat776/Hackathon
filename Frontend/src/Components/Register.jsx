@@ -1,114 +1,174 @@
 // src/Pages/Register.jsx
-import React, { useContext, useReducer, useState } from "react";
-import { Person, Email, Lock } from "@mui/icons-material";
+import React, { useState } from "react";
+import { UserRound, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import axios from "axios";
-import { showToast } from "../Functions/commonFunctions.jsx";
-import { Navigate, useNavigate } from "react-router-dom";
-import { AuthContext } from "../Context/Auth.jsx";
-import { useRef } from "react";
 import { ToastContainer } from "react-toastify";
+import { showToast } from "../Functions/commonFunctions.jsx";
+import { useNavigate } from "react-router-dom";
+import { baseUrl } from "../baseUrl.jsx";
 
 const Register = () => {
-    const { user, loading, error, dispatch } = useContext(AuthContext)
-    const [showPassword, setShowPassword] = useState(false)
-    const navigate = useNavigate()
-    const togglePasswordVisibility = () => setShowPassword(prev => !prev);
-    let ref = useRef()
+    const [showPassword, setShowPassword] = useState(false);
     const [credentials, setCredentials] = useState({
+        firstName: "",
+        lastName: "",
         username: "",
+        email: "",
         password: "",
-        email: ""
-    })
+        profilePic: null,
+    });
 
-    let changeHandler = (e) => {
-        setCredentials((prev) => (
-            { ...prev, [e.target.id]: e.target.value }
-        ))
-    }
+    const navigate = useNavigate();
+    const togglePasswordVisibility = () => setShowPassword((prev) => !prev);
+
+    const changeHandler = (e) => {
+        const { id, value, files } = e.target;
+        setCredentials((prev) => ({
+            ...prev,
+            [id]: files ? files[0] : value,
+        }));
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!credentials.username || !credentials.email || !credentials.password) {
-            showToast("Missing Fields", "error", "dark")
+
+        const { firstName, lastName, username, email, password, profilePic } = credentials;
+
+        if (!firstName || !lastName || !username || !profilePic || !email || !password) {
+            showToast("All fields are required", "error", "dark");
             return;
         }
 
-        if (credentials.password.length < 6) {
-            showToast("Password should contain 6 letters", "error", "dark")
-            return
+        if (password.length < 6) {
+            showToast("Password must be at least 6 characters", "error", "dark");
+            return;
         }
 
         try {
-            const res = await axios.post("http://localhost:3000/api/auth/register", credentials);
-            showToast(res.data.message, "success", "light")
-            console.log(res, "Response Data ")
-            dispatch({ type: "LOGIN_SUCCESS", payload: res.data.data });
-            navigate("/")
+            const formData = new FormData();
+            Object.entries(credentials).forEach(([key, value]) => {
+                formData.append(key, value);
+            });
+            localStorage.setItem("email", email)
+            const res = await axios.post(`${baseUrl}auth/register`, formData);
+            showToast(res.data.message, "success", "light");
+            setCredentials({
+                firstName: "",
+                lastName: "",
+                username: "",
+                email: "",
+                password: "",
+                profilePic: null,
+            });
+            navigate("/verifyOtp");
         } catch (err) {
-            console.log(err);
-            showToast((err.response?.data?.message || err.message), "error", "dark")
+            showToast(err.response?.data?.message || err.message, "error", "dark");
         }
     };
-    return (
-        <div className="h-screen w-full bg-gradient-to-br from-green-900 via-green-800 to-green-700 flex items-center justify-center">
-            <ToastContainer />
-            <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
-                <h2 className="text-2xl font-bold text-center text-green-800 mb-6">Create Account</h2>
 
-                <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+    return (
+        <div className="min-h-screen w-full bg-gray-100 flex items-center justify-center px-4">
+            <ToastContainer />
+            <div className="bg-white w-full max-w-xl p-8 rounded-xl shadow-xl">
+                <h2 className="text-3xl font-semibold text-center text-gray-800 mb-6">
+                    Create Your Account
+                </h2>
+
+                <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* First Name */}
+                    <input
+                        type="text"
+                        id="firstName"
+                        placeholder="First Name"
+                        value={credentials.firstName}
+                        onChange={changeHandler}
+                        className="col-span-1 border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-gray-600"
+                    />
+
+                    {/* Last Name */}
+                    <input
+                        type="text"
+                        id="lastName"
+                        placeholder="Last Name"
+                        value={credentials.lastName}
+                        onChange={changeHandler}
+                        className="col-span-1 border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-gray-600"
+                    />
+
                     {/* Username */}
-                    <div className="flex items-center border border-gray-300 rounded px-3 py-2">
-                        <Person className="text-green-700" />
+                    <div className="col-span-1 sm:col-span-2 flex items-center border border-gray-300 rounded-md px-4 py-2 bg-white">
+                        <UserRound className="text-gray-700" />
                         <input
                             type="text"
+                            id="username"
                             placeholder="Username"
                             value={credentials.username}
                             onChange={changeHandler}
-                            className="flex-1 ml-2 outline-none"
-                            id="username"
+                            className="ml-3 w-full bg-transparent focus:outline-none text-gray-800"
                         />
                     </div>
 
                     {/* Email */}
-                    <div className="flex items-center border border-gray-300 rounded px-3 py-2">
-                        <Email className="text-green-700" />
+                    <div className="col-span-1 sm:col-span-2 flex items-center border border-gray-300 rounded-md px-4 py-2 bg-white">
+                        <Mail className="text-gray-700" />
                         <input
                             type="email"
+                            id="email"
                             placeholder="Email"
                             value={credentials.email}
                             onChange={changeHandler}
-                            className="flex-1 ml-2 outline-none"
-                            id="email"
+                            className="ml-3 w-full bg-transparent focus:outline-none text-gray-800"
                         />
                     </div>
 
                     {/* Password */}
-                    <div className="flex items-center border border-gray-300 rounded px-3 py-2">
-                        <Lock className="text-green-700" />
+                    <div className="col-span-1 sm:col-span-2 flex items-center border border-gray-300 rounded-md px-4 py-2 bg-white">
+                        <Lock className="text-gray-700" />
                         <input
-                            type={showPassword ? "text" : "password"} // ← toggle type here
+                            type={showPassword ? "text" : "password"}
+                            id="password"
                             placeholder="Password"
                             value={credentials.password}
                             onChange={changeHandler}
-                            className="flex-1 ml-2 outline-none"
-                            id="password"
+                            className="ml-3 w-full bg-transparent focus:outline-none text-gray-800"
+                        />
+                        <button
+                            type="button"
+                            onClick={togglePasswordVisibility}
+                            className="ml-2 text-gray-500"
+                        >
+                            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                        </button>
+                    </div>
+
+                    {/* Profile Pic Upload */}
+                    <div className="col-span-1 sm:col-span-2">
+                        <label className="block mb-1 text-sm text-gray-700">Profile Picture</label>
+                        <input
+                            type="file"
+                            id="profilePic"
+                            accept="image/*"
+                            onChange={changeHandler}
+                            className="w-full border border-gray-300 rounded-md px-3 py-2 file:mr-4 file:py-1 file:px-2 file:border-0 file:text-sm file:bg-gray-800 file:text-white hover:file:bg-gray-700"
                         />
                     </div>
 
-                    {/* Show Password Checkbox */}
-                    <div className="flex items-center gap-2 text-sm">
-                        <input type="checkbox" onChange={togglePasswordVisibility} id="showPass" />
-                        <label htmlFor="showPass" className="text-gray-700">Show Password</label>
+                    {/* Submit Button */}
+                    <div className="col-span-1 sm:col-span-2 mt-2">
+                        <button
+                            type="submit"
+                            className="w-full bg-gray-800 hover:bg-gray-700 text-white font-semibold py-2 rounded-md transition duration-200"
+                        >
+                            Register
+                        </button>
                     </div>
 
-                    {/* Submit Button */}
-                    <button
-                        type="submit"
-                        className="bg-green-700 hover:bg-green-800 text-white font-semibold py-2 rounded transition"
-                    >
-                        Register
-                    </button>
-                    <p className="text-center">Already have an account? <a href="/login" className="text-blue-600">Login</a></p>
+                    <div className="col-span-1 sm:col-span-2 text-center text-sm text-gray-600 mt-2">
+                        Already have an account?{" "}
+                        <a href="/login" className="text-gray-800 hover:underline font-medium">
+                            Login here
+                        </a>
+                    </div>
                 </form>
             </div>
         </div>
