@@ -3,9 +3,9 @@ import React, { useState } from "react";
 import { UserRound, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import axios from "axios";
 import { ToastContainer } from "react-toastify";
-import { showToast } from "../Functions/commonFunctions.jsx";
+import { showToast } from "../utils/commonFunctions.jsx";
 import { useNavigate } from "react-router-dom";
-import { baseUrl } from "../baseUrl.jsx";
+import { baseUrl } from "../utils/baseUrl.jsx";
 
 const Register = () => {
     const [showPassword, setShowPassword] = useState(false);

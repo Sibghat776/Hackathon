@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
-import { showToast } from "../Functions/commonFunctions";
-import { baseUrl } from "../baseUrl";
+import { showToast } from "../utils/commonFunctions.jsx";
+import { baseUrl } from "../utils/baseUrl.jsx";
 import { ShieldCheck } from "lucide-react";
 
 const VerifyOTPPage = () => {
