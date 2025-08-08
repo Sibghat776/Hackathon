@@ -6,8 +6,11 @@ import { ToastContainer } from "react-toastify";
 import { showToast } from "../utils/commonFunctions.jsx";
 import { useNavigate } from "react-router-dom";
 import { baseUrl } from "../utils/baseUrl.jsx";
+import { useDispatch } from "react-redux";
+import { addUser } from "../features/userSlice.js";
 
 const Register = () => {
+    const dispatch = useDispatch();
     const [showPassword, setShowPassword] = useState(false);
     const [credentials, setCredentials] = useState({
         firstName: "",
@@ -49,9 +52,14 @@ const Register = () => {
             Object.entries(credentials).forEach(([key, value]) => {
                 formData.append(key, value);
             });
+            if(!email.endsWith("@gmail.com")) {
+                showToast("Email must be a Gmail address", "error", "dark");
+                return;
+            }
             localStorage.setItem("email", email)
             const res = await axios.post(`${baseUrl}auth/register`, formData);
             showToast(res.data.message, "success", "light");
+            dispatch(addUser(credentials))
             setCredentials({
                 firstName: "",
                 lastName: "",
