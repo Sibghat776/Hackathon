@@ -6,14 +6,13 @@ export const createError = (status, message) => {
     err.message = message
     return err
 }
-export const createSuccess = (status, message) => {
+export const createSuccess = (status, message, data = null) => {
     const successObj = {}
     successObj.status = status
     successObj.message = message
+    successObj.data = data
     return successObj
 }
-
-
 export const verifyToken = (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;

@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken"
 import { uploadToCloudinary } from "../utils/cloudinary.js"
 import { generateOTP, sendEmail } from "../utils/sendEmail.js"
 import { Otp } from "../Models/Otp.js"
+import { create } from "domain"
 
 export const register = async (req, res, next) => {
     try {
@@ -76,10 +77,13 @@ export const verifyOtp = async (req, res) => {
             return res.status(400).json({ success: false, message: "Invalid or expired OTP" });
         }
 
-        // OTP is valid
-        await Otp.deleteMany({ email }); // delete all OTPs for this email
-
-        res.status(200).json({ success: true, message: "OTP verified successfully" });
+        
+        const updateUser = await Users.updateOne({ email: email }, { $set: { isVerified: true } })
+        const successResponse = createSuccess(200, "OTP verified successfully", updateUser);
+        res.json({
+            ...successResponse
+        });
+        // await Otp.deleteMany({ email }); // delete all OTPs for this email
     } catch (error) {
         console.error("Error verifying OTP:", error);
         res.status(500).json({ success: false, message: "Server error" });

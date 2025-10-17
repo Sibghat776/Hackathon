@@ -1,6 +1,6 @@
 import e from "express";
 import { getUser, getUsers, login, logout, register, updateUser, verifyOtp } from "../Controllers/authController.js";
-import upload from "../middlewares/upoad.js";
+import upload from "../middlewares/upload.js";
 
 export let authRoute = e.Router();
 

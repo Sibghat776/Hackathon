@@ -15,11 +15,11 @@ const Navbar = () => {
         window.addEventListener("scroll", handleScroll);
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
+    console.log(userData);
 
-    const navLinkClass = (path) =>
-        `relative transition duration-300 hover:text-[#94c484] ${location.pathname === path ? "text-[#94c484]" : "text-white"
-        }`;
-        console.log(userData)
+    const navLinkClass = (path) => {
+        return `relative text-white transition duration-300 hover:text-white ${location.pathname === path ? "text-white font-semibold" : "text-gray-300"}`;
+    }
     return (
         <nav
             className={"fixed top-0 left-0 w-full z-50 transition-all duration-300 shadow-md backdrop-blur-m bg-[#1d1449]/100"}
@@ -36,10 +36,19 @@ const Navbar = () => {
 
                     {/* Desktop Nav */}
                     <div className="hidden md:flex items-center gap-8">
-                        <Link to="/" className={navLinkClass("/")}>
+                        <Link className={navLinkClass("/")} to="/">
                             Home
                         </Link>
-                        <div className="ml-4 flex gap-2">
+                        <a className={navLinkClass("#about")} href="#about">
+                            About
+                        </a>
+                        <Link className={navLinkClass("/admission")} to="/admission">
+                            Admissions
+                        </Link>
+                        <Link className={navLinkClass("/contact")} to="/contact">
+                            Contact
+                        </Link>
+                        {!userData ? <div className="ml-4 flex gap-2">
                             <Link to={"/register"}>
                                 <button className="px-4 py-1.5 text-sm border border-white text-white rounded-full hover:bg-white hover:text-[#1d1449] transition duration-200">
                                     Register
@@ -48,7 +57,16 @@ const Navbar = () => {
                             <button className="px-4 py-1.5 text-sm bg-[#498138] text-white rounded-full hover:bg-[#234e18] transition duration-200">
                                 Login
                             </button>
-                        </div>
+                        </div> :
+                            <div className="ml-4 flex gap-2">
+                                <button className="px-4 py-1.5 text-sm border border-white text-white rounded-full hover:bg-white hover:text-[#1d1449] transition duration-200">
+                                    Dashboard
+                                </button>
+                                <button className="px-4 py-1.5 text-sm bg-[#498138] text-white rounded-full hover:bg-[#234e18] transition duration-200">
+                                    Logout
+                                </button>
+                            </div>
+                        }
                     </div>
 
                     {/* Mobile Menu Toggle */}
