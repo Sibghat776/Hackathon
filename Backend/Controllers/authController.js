@@ -82,6 +82,17 @@ export const verifyOtp = async (req, res, next) => {
         if (user.otpExpiry < Date.now()) {
             return next(createError(400, "OTP has expired"));
         }
+        const token = jwt.sign(
+            { id: user._id, email: user.email },
+            process.env.JWT_SECRET,
+            { expiresIn: "7d" }
+        );
+
+        res.cookie("access_token", token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "none",
+        });
 
         user.isVerified = true;
         user.otp = null;

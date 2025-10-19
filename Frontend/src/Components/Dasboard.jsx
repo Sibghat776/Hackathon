@@ -1,17 +1,36 @@
 // src/pages/Dashboard.jsx
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Navbar from "../Components/Navbar";
 import Footer from "../Components/Footer";
 import { FileText, Download, Trash2, Eye, UserCheck, CheckCircle, AlertTriangle, Loader2 } from "lucide-react";
+import { showToast } from "../utils/commonFunctions";
+import { useSelector } from "react-redux";
+import axios from "axios";
+import { baseUrl } from "../utils/baseUrl";
 
 const Dashboard = () => {
-    // Dummy user & reports
-    const [user] = useState({
-        username: "JohnDoe",
-        email: "john@example.com",
+
+    const [user, setUser] = useState({
+        username: "",
+        email: "",
         profilePic: null,
-        isVerified: true
+        isVerified: false
     });
+
+    const userRedux = useSelector((state) => state?.userReducer?.user)
+    console.log(userRedux, "user from redux in dashboard");
+    useEffect(() => {
+        async function fetchUserData() {
+            let res = await axios.get(`${baseUrl}auth/getUser/${userRedux.username}`)
+            console.log(res?.data?.data, "Response from dashboard to get User")
+            setUser(prev => ({
+                username: res?.data?.data?.username,
+                email: res?.data?.data?.email,
+                isVerified: res?.data?.data?.isVerified
+            }))
+        }
+        fetchUserData();
+    }, [userRedux])
 
     const [reports, setReports] = useState([
         { id: 1, name: "Blood Test Report", date: "2025-10-15", type: "PDF" },
@@ -24,7 +43,7 @@ const Dashboard = () => {
     const handleDownload = async (report) => {
         setLoadingId(report.id);
         await new Promise((resolve) => setTimeout(resolve, 1500));
-        alert(`Report "${report.name}" downloaded!`);
+        showToast(`Report "${report.name}" downloaded!`, "success", "light");
         setLoadingId(null);
     };
 

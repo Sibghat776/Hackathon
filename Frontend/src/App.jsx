@@ -10,11 +10,13 @@ import ProtectedRoutes from './Components/ProtectedRoutes'
 import Contact from './Components/Contact'
 import Reports from './Components/Reports'
 import Dashboard from './Components/Dasboard'
+import { ToastContainer } from 'react-toastify'
 
 function App() {
 
   return (
     <>
+      <ToastContainer />
       <Routes>
         <Route path='/' element={<Home />} />
         <Route path='/register' element={<Register />} />

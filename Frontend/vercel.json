@@ -1,9 +1,8 @@
 {
     "version": 2,
-    "name": "HealthMate",
     "builds": [
         {
-            "src": "Frontend/package.json",
+            "src": "package.json",
             "use": "@vercel/static-build",
             "config": {
                 "distDir": "dist"

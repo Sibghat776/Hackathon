@@ -2,12 +2,13 @@
 
 import React, { useEffect, useState } from "react";
 import { Menu, X, User } from "lucide-react"; // 'User' icon added for clarity
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import Logo from "../assets/Logo.jpg"; // Apne logo path ko adjust kar lijiyega
 import { showToast } from "../utils/commonFunctions";
 import axios from "axios";
 import { baseUrl } from "../utils/baseUrl";
+import { removeUser } from "../features/userSlice";
 
 const Navbar = () => {
     // State for Mobile Menu visibility
@@ -16,11 +17,12 @@ const Navbar = () => {
     const dispatch = useDispatch();
     const [isScrolled, setIsScrolled] = useState(false);
 
+    const navigate = useNavigate()
     const location = useLocation();
 
     // REDUX STATE: Assuming your user data is stored in state.auth.user
     // Agar aapka Redux store path alag hai, toh yahan change kar lijiyega.
-    const user = useSelector((state) => state);
+    const user = useSelector((state) => state?.userReducer?.user);
     const isLoggedIn = !!user;
     // Scroll Effect: Navbar background change after 10px scroll
     useEffect(() => {
@@ -39,20 +41,14 @@ const Navbar = () => {
     const closeMobileMenu = () => setOpen(false);
     const handleLogout = async () => {
         try {
-            axios.post(`${baseUrl}/auth/logout`, {}, {
-                withCredentials: true, // ✅ needed if using cookies/session
-            })
-                .then(res => {
-                    // handle redirect or state reset
-                })
-                .catch(err => {
-                    console.error("Logout Error:", err);
-                });
+            // ✅ Call backend logout API and wait for response
+            await axios.get(`${baseUrl}auth/logout`, { withCredentials: true });
+
             dispatch(removeUser());
             localStorage.removeItem("user");
             showToast("Logged out successfully", "success", "light");
         } catch (err) {
-            console.error(err);
+            console.error("Logout Error:", err);
             showToast("Error logging out", "error", "light");
         }
     };

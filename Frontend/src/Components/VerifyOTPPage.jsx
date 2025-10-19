@@ -43,13 +43,13 @@ const VerifyOTPPage = () => {
 
         setIsVerifying(true);
         try {
-            const res = await axios.post(`${baseUrl}auth/verifyOtp`, { email, otp });
-            showToast(res.data.message || "OTP Verified Successfully!", "success", "light");
-            localStorage.removeItem("email");
-            dispatch(addUser({ username: res.data.username, email: res.data.email }));
-            localStorage.setItem("user", JSON.stringify({ username: res.data.username, email: res.data.email }));
-            console.log(res.data.username, "OTP verification response");
-            navigate("/");
+            const res = await axios.post(`${baseUrl}auth/verifyOtp`, { email, otp }, { withCredentials: true });
+            showToast(res?.data?.data?.message || "OTP Verified Successfully!", "success", "light");
+
+            dispatch(addUser({ username: res?.data?.data?.username, email: res?.data?.data?.email }));
+            localStorage.setItem("user", JSON.stringify(res?.data?.data));
+
+            navigate("/dashboard");
         } catch (err) {
             showToast(err.response?.data?.message || "Invalid OTP", "error", "dark");
         } finally {

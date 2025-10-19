@@ -42,15 +42,16 @@ const Login = () => {
             const res = await axios.post(`${baseUrl}auth/login`, credentials, {
                 withCredentials: true,
             });
-
-            showToast(res.data.message || "Login successful!", "success", "light");
+            console.log(res, "res at the time of login")
+            showToast(res?.data?.data?.message || "Login successful!", "success", "light");
 
             dispatch(
                 addUser({
-                    username: res.data.username,
-                    email: res.data.email,
+                    username: res?.data?.data?.username,
+                    email: res?.data?.data?.email,
                 })
             );
+            localStorage.setItem("user", JSON.stringify(res?.data?.data));
 
             navigate("/dashboard");
         } catch (err) {
@@ -129,8 +130,8 @@ const Login = () => {
                             type="submit"
                             disabled={isLoading}
                             className={`w-full py-4 rounded-xl text-lg font-extrabold tracking-wider transition duration-300 flex items-center justify-center gap-2 ${isLoading
-                                    ? "bg-secondary/40 text-gray-400 cursor-not-allowed shadow-none"
-                                    : "bg-accent hover:bg-secondary text-dark shadow-2xl shadow-accent/40 hover:shadow-secondary/40"
+                                ? "bg-secondary/40 text-gray-400 cursor-not-allowed shadow-none"
+                                : "bg-accent hover:bg-secondary text-dark shadow-2xl shadow-accent/40 hover:shadow-secondary/40"
                                 }`}
                         >
                             {isLoading ? (
