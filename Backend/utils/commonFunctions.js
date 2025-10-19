@@ -48,7 +48,7 @@ export const verifyUser = (req, res, next) => {
             next()
         }
         else {
-            next(createError(401, "You are note authorized"))
+            next(createError(401, "You are not verified"))
         }
     })
 }

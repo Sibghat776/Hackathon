@@ -1,106 +1,180 @@
+// src/components/Navbar.jsx
+
 import React, { useEffect, useState } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, X, User } from "lucide-react"; // 'User' icon added for clarity
 import { Link, useLocation } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import Logo from "../assets/Logo.jpg"; // Apne logo path ko adjust kar lijiyega
+import { showToast } from "../utils/commonFunctions";
+import axios from "axios";
+import { baseUrl } from "../utils/baseUrl";
 
 const Navbar = () => {
+    // State for Mobile Menu visibility
     const [open, setOpen] = useState(false);
+    // State for Scroll-aware background
+    const dispatch = useDispatch();
     const [isScrolled, setIsScrolled] = useState(false);
+
     const location = useLocation();
-    const userData = useSelector((state) => state)
+
+    // REDUX STATE: Assuming your user data is stored in state.auth.user
+    // Agar aapka Redux store path alag hai, toh yahan change kar lijiyega.
+    const user = useSelector((state) => state);
+    const isLoggedIn = !!user;
+    // Scroll Effect: Navbar background change after 10px scroll
     useEffect(() => {
-        const handleScroll = () => {
-            setIsScrolled(window.scrollY > 10);
-        };
+        console.log(user, "data from navbar");
+        const handleScroll = () => setIsScrolled(window.scrollY > 10);
         window.addEventListener("scroll", handleScroll);
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
-    console.log(userData);
 
-    const navLinkClass = (path) => {
-        return `relative text-white transition duration-300 hover:text-white ${location.pathname === path ? "text-white font-semibold" : "text-gray-300"}`;
-    }
+    // Function to handle active link styling
+    const getNavLinkClass = (path) =>
+        `relative text-sm font-medium transition duration-300 hover:text-accent ${location.pathname === path ? "text-accent border-b-2 border-accent pb-0.5" : "text-gray-200"
+        }`;
+
+    // Function to close mobile menu on link click
+    const closeMobileMenu = () => setOpen(false);
+    const handleLogout = async () => {
+        try {
+            axios.post(`${baseUrl}/auth/logout`, {}, {
+                withCredentials: true, // ✅ needed if using cookies/session
+            })
+                .then(res => {
+                    // handle redirect or state reset
+                })
+                .catch(err => {
+                    console.error("Logout Error:", err);
+                });
+            dispatch(removeUser());
+            localStorage.removeItem("user");
+            showToast("Logged out successfully", "success", "light");
+        } catch (err) {
+            console.error(err);
+            showToast("Error logging out", "error", "light");
+        }
+    };
+
+
     return (
         <nav
-            className={"fixed top-0 left-0 w-full z-50 transition-all duration-300 shadow-md backdrop-blur-m bg-[#1d1449]/100"}
+            className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${isScrolled
+                ? "bg-dark/95 shadow-2xl backdrop-blur-lg"
+                : "bg-dark/80" // Dikhne ke liye transparent se thoda kam par 'dark/80' set kiya gaya hai.
+                }`}
         >
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-10">
                 <div className="flex justify-between items-center h-16">
-                    {/* Logo & Brand */}
-                    <Link to="/" className="flex items-center gap-3">
-                        <img src={"/"} alt="Logo" className="h-12 object-contain" />
-                        <span onClick={() => window.scrollTo(0, 0)} className="text-white font-semibold text-lg md:text-xl tracking-wide hidden md:inline-block">
-                            Sibghat Application
+                    {/* 1. Logo and App Name */}
+                    <Link to="/" className="flex items-center gap-3" onClick={closeMobileMenu}>
+                        <img src={Logo} alt="HealthMate Logo" className="h-9 w-9 rounded-full object-contain" />
+                        <span className="text-white font-extrabold text-xl tracking-wider">
+                            HealthMate
                         </span>
                     </Link>
 
-                    {/* Desktop Nav */}
+                    {/* 2. Desktop Navigation Links */}
                     <div className="hidden md:flex items-center gap-8">
-                        <Link className={navLinkClass("/")} to="/">
-                            Home
-                        </Link>
-                        <a className={navLinkClass("#about")} href="#about">
-                            About
-                        </a>
-                        <Link className={navLinkClass("/admission")} to="/admission">
-                            Admissions
-                        </Link>
-                        <Link className={navLinkClass("/contact")} to="/contact">
-                            Contact
-                        </Link>
-                        {!userData ? <div className="ml-4 flex gap-2">
-                            <Link to={"/register"}>
-                                <button className="px-4 py-1.5 text-sm border border-white text-white rounded-full hover:bg-white hover:text-[#1d1449] transition duration-200">
-                                    Register
-                                </button>
-                            </Link>
-                            <button className="px-4 py-1.5 text-sm bg-[#498138] text-white rounded-full hover:bg-[#234e18] transition duration-200">
-                                Login
-                            </button>
-                        </div> :
-                            <div className="ml-4 flex gap-2">
-                                <button className="px-4 py-1.5 text-sm border border-white text-white rounded-full hover:bg-white hover:text-[#1d1449] transition duration-200">
-                                    Dashboard
-                                </button>
-                                <button className="px-4 py-1.5 text-sm bg-[#498138] text-white rounded-full hover:bg-[#234e18] transition duration-200">
-                                    Logout
-                                </button>
-                            </div>
-                        }
+                        <Link to="/" className={getNavLinkClass("/")}>Home</Link>
+                        {/* 'About' link (Hash link, so no active state logic) */}
+                        <Link to="/about" className={getNavLinkClass("/about")}>About</Link>
+                        <Link to="/reports" className={getNavLinkClass("/reports")}>Reports</Link>
+                        <Link to="/assistant" className={getNavLinkClass("/assistant")}>AI Assistant</Link>
+                        {/* 'Contact' link (Conditional, maybe show only if needed) */}
+                        <Link to="/contact" className={getNavLinkClass("/contact")}>Contact</Link>
+
+                        {/* Desktop Auth/User Section */}
+                        <div className="ml-4 flex gap-3">
+                            {isLoggedIn ? (
+                                <>
+                                    {/* User is Logged In */}
+                                    <Link to="/dashboard">
+                                        <button className="flex items-center gap-1.5 px-3 py-1.5 border border-accent text-accent rounded-full hover:bg-accent hover:text-dark transition duration-200 text-sm font-medium">
+                                            <User size={18} /> Dashboard
+                                        </button>
+                                    </Link>
+                                    <button
+                                        onClick={handleLogout}
+                                        className="px-4 py-1.5 bg-accent text-dark font-medium rounded-full hover:bg-accent/90 transition duration-200 text-sm"
+                                    >
+                                        Logout
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    {/* User is Logged Out */}
+                                    <Link to="/login">
+                                        <button className="px-4 py-1.5 border border-accent text-accent rounded-full hover:bg-accent hover:text-dark transition duration-200 text-sm font-medium">
+                                            Login
+                                        </button>
+                                    </Link>
+                                    <Link to="/register">
+                                        <button className="px-4 py-1.5 bg-secondary text-dark font-medium rounded-full hover:bg-secondary/90 transition duration-200 text-sm">
+                                            Register
+                                        </button>
+                                    </Link>
+                                </>
+                            )}
+                        </div>
                     </div>
 
-                    {/* Mobile Menu Toggle */}
+                    {/* 3. Mobile Menu Button */}
                     <div className="md:hidden">
-                        <button onClick={() => setOpen(!open)} className="text-white focus:outline-none">
+                        <button
+                            onClick={() => setOpen(!open)}
+                            className="text-accent focus:outline-none p-1 rounded-md hover:bg-dark/50"
+                            aria-label={open ? "Close menu" : "Open menu"}
+                        >
                             {open ? <X size={28} /> : <Menu size={28} />}
                         </button>
                     </div>
                 </div>
             </div>
 
-            {/* Mobile Dropdown */}
+            {/* 4. Mobile Menu Drawer */}
             {open && (
-                <div className="md:hidden bg-[#1d1449]/90 backdrop-blur-md px-6 pt-4 pb-6 space-y-4 rounded-b-xl transition-all duration-300">
-                    <Link to="/" className="block text-white hover:text-[#94c484]">
-                        Home
-                    </Link>
-                    <a href="#about" className="block text-white hover:text-[#94c484]">
-                        About
-                    </a>
-                    <Link to="/admission" className="block text-white hover:text-[#94c484]">
-                        Admissions
-                    </Link>
-                    <Link to="/contact" className="block text-white hover:text-[#94c484]">
-                        Contact
-                    </Link>
+                <div className="md:hidden bg-dark/95 backdrop-blur-md px-6 py-5 space-y-4 shadow-xl border-t border-gray-700/50 absolute w-full top-16">
 
-                    <div className="pt-3 space-y-2">
-                        <button className="w-full py-2 border border-white text-white rounded-full hover:bg-white hover:text-[#1d1449] transition duration-200">
-                            Sign In
-                        </button>
-                        <button className="w-full py-2 bg-[#498138] text-white rounded-full hover:bg-[#234e18] transition duration-200">
-                            Sign Up
-                        </button>
+                    {/* Mobile Nav Links */}
+                    <Link to="/" className="block text-gray-200 hover:text-accent transition duration-150" onClick={closeMobileMenu}>Home</Link>
+                    <a href="#about" className="block text-gray-200 hover:text-accent transition duration-150" onClick={closeMobileMenu}>About</a>
+                    <Link to="/reports" className="block text-gray-200 hover:text-accent transition duration-150" onClick={closeMobileMenu}>Reports</Link>
+                    <Link to="/assistant" className="block text-gray-200 hover:text-accent transition duration-150" onClick={closeMobileMenu}>AI Assistant</Link>
+                    <Link to="/contact" className="block text-gray-200 hover:text-accent transition duration-150" onClick={closeMobileMenu}>Contact</Link>
+
+                    {/* Mobile Auth Buttons */}
+                    <div className="pt-4 space-y-2 border-t border-gray-700/50">
+                        {isLoggedIn ? (
+                            <>
+                                <Link to="/dashboard" onClick={closeMobileMenu}>
+                                    <button className="w-full py-2 border border-accent text-accent rounded-full hover:bg-accent hover:text-dark transition duration-200 font-medium">
+                                        Dashboard
+                                    </button>
+                                </Link>
+                                <button
+                                    onClick={handleLogout}
+                                    className="w-full py-2 bg-accent text-dark font-medium rounded-full hover:bg-accent/90 transition duration-200"
+
+                                >
+                                    Logout
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <Link to="/login" onClick={closeMobileMenu}>
+                                    <button className="w-full py-2 border border-accent text-accent rounded-full hover:bg-accent hover:text-dark transition duration-200 font-medium">
+                                        Login
+                                    </button>
+                                </Link>
+                                <Link to="/register" onClick={closeMobileMenu}>
+                                    <button className="w-full py-2 bg-secondary text-dark font-medium rounded-full hover:bg-secondary/90 transition duration-200">
+                                        Register
+                                    </button>
+                                </Link>
+                            </>
+                        )}
                     </div>
                 </div>
             )}

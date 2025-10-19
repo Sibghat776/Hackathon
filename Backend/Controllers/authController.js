@@ -1,184 +1,192 @@
-import Users from "../Models/Users.js"
-import { createError, createSuccess } from "../utils/commonFunctions.js"
-import bcrypt from "bcrypt"
-import jwt from "jsonwebtoken"
-import { uploadToCloudinary } from "../utils/cloudinary.js"
-import { generateOTP, sendEmail } from "../utils/sendEmail.js"
-import { Otp } from "../Models/Otp.js"
-import { create } from "domain"
+import Users from "../Models/Users.js";
+import { createError, createSuccess } from "../utils/commonFunctions.js";
+import jwt from "jsonwebtoken";
+import { uploadToCloudinary } from "../utils/cloudinary.js";
+import { sendEmail, generateOTP } from "../utils/sendEmail.js";
+import bcrypt from "bcryptjs";
 
+// -------------------
+// REGISTER
+// -------------------
 export const register = async (req, res, next) => {
     try {
-        // Check existing user
-        if (!req.body) {
+        const { username, email, password } = req.body;
+
+        if (!username || !email || !password) {
             return next(createError(400, "All fields are required!"));
         }
-        const isExist = await Users.findOne({
-            $or: [
-                { username: req.body.username },
-                { email: req.body.email }
-            ]
+
+        // Check if user already exists
+        const existingUser = await Users.findOne({
+            $or: [{ username }, { email }],
         });
+        if (existingUser)
+            return next(createError(409, "Username or Email already exists!"));
 
+        if (password.length < 6)
+            return next(createError(400, "Password must be at least 6 characters"));
 
-        if (isExist) return next(createError(550, "Username OR Email already exist!"));
+        // Hash the password
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
 
-        if (req.body.password.length < 6) {
-            return next(createError(400, "Password should contain minimum 6 letters!"));
-        }
+        // Generate OTP and expiry
+        const otp = generateOTP(); // e.g., 6-digit number
+        const otpExpiry = Date.now() + 10 * 60 * 1000; // 10 minutes from now
 
-        // Upload profile picture if available
-        let profilePicUrl;
-        if (req.file) {
-            const result = await uploadToCloudinary(req.file.path, "uploads/profilePic");
-            profilePicUrl = result.secure_url;
-        }
-
-        if (!profilePicUrl) {
-            return next(createError(400, "Profile picture is required!"));
-        }
-        // Create user
-        const salt = bcrypt.genSaltSync(10);
-        const hash = bcrypt.hashSync(req.body.password, salt);
+        // Create new user
         const newUser = new Users({
-            firstName: req.body.firstName,
-            lastName: req.body.lastName,
-            profilePic: profilePicUrl,
-            username: req.body.username,
-            email: req.body.email,
-            password: hash
-        });
-        const otp = generateOTP();
-        await Otp.create({
-            email: req.body.email,
-            otp: otp,
-            expiresAt: Date.now() + 10 * 60 * 1000 // OTP valid for 10 minutes
-        });
-        await newUser.save();
-        sendEmail(req.body.email, "Thanks for Signing up!", `Welcome to My App\n Hello ${newUser.firstName},\n\nThank you for registering with Sibghat Application! \\n\nYour OTP for verification is: ${otp}\n\nBest regards,\nSibghat Ullah`);
-        const successResponse = createSuccess(200, "OTP has been sent to your email. Please verify your account.");
-        res.status(200).json({
-            ...successResponse,
-            data: newUser
+            username,
+            email,
+            password: hashedPassword,
+            otp,
+            otpExpiry,
+            isVerified: false,
         });
 
+        await newUser.save();
+
+        // Send OTP email
+        await sendEmail(
+            email,
+            "Verify your email",
+            `Hello ${username},\n\nYour OTP for verification is: ${otp}\nIt will expire in 10 minutes.\n\nRegards,\nSibghat Application`
+        );
+
+        const successRes = createSuccess(
+            201,
+            "User registered successfully. OTP has been sent to your email.",
+            { id: newUser._id, username: newUser.username, email: newUser.email }
+        );
+
+        res.status(201).json(successRes);
+    } catch (error) {
+        next(error);
+    }
+};
+// -------------------
+// VERIFY OTP
+// -------------------
+export const verifyOtp = async (req, res, next) => {
+    try {
+        const { email, otp } = req.body;
+
+        const user = await Users.findOne({ email }).select("+otp +otpExpiry");
+
+        if (!user) return next(createError(404, "User not found!"));
+
+        if (!user.otp || !user.otpExpiry || user.otp !== otp) {
+            return next(createError(400, "Invalid OTP"));
+        }
+
+        if (user.otpExpiry < Date.now()) {
+            return next(createError(400, "OTP has expired"));
+        }
+
+        user.isVerified = true;
+        user.otp = null;
+        user.otpExpiry = null;
+        await user.save();
+
+        const successRes = createSuccess(200, "OTP verified successfully", {
+            id: user._id,
+            username: user.username,
+            email: user.email,
+        });
+        res.status(200).json(successRes);
     } catch (error) {
         next(error);
     }
 };
 
-export const verifyOtp = async (req, res) => {
-    const { email, otp } = req.body;
-    console.log(email, otp, "email and otp in verifyOtp");
+// -------------------
+// LOGIN
+// -------------------
+export const login = async (req, res, next) => {
     try {
-        const otpRecord = await Otp.findOne({ email, otp });
+        const { email, password } = req.body;
 
-        if (!otpRecord) {
-            return res.status(400).json({ success: false, message: "Invalid or expired OTP" });
-        }
+        const user = await Users.findOne({ email }).select("+password");
 
-        
-        const updateUser = await Users.updateOne({ email: email }, { $set: { isVerified: true } })
-        const successResponse = createSuccess(200, "OTP verified successfully", updateUser);
-        res.json({
-            ...successResponse
-        });
-        // await Otp.deleteMany({ email }); // delete all OTPs for this email
-    } catch (error) {
-        console.error("Error verifying OTP:", error);
-        res.status(500).json({ success: false, message: "Server error" });
-    }
-};
+        if (!user) return next(createError(404, "User not found"));
 
-
-export const login = async (req, res) => {
-    try {
-        let { email, password } = req.body
-        let user = await Users.findOne({ email: email })
-
-        if (user.length === 0) {
-            return res.status(404).json(createError(404, "User not found!"))
-        }
-
-        let isPasswordCorrect = await bcrypt.compare(password, user.password)
-
-        if (!isPasswordCorrect) {
-            return res.status(400).json(createError(400, "Wrong Credentials!"))
-        }
-
-        let { password: _, ...userDetails } = user._doc
-
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) return next(createError(400, "Invalid credentials"));
 
         const token = jwt.sign(
-            {
-                id: user._id,
-                isAdmin: user.isAdmin
-            }, process.env.JWT, { expiresIn: "3d" }
-        )
+            { id: user._id, isVerified: user.isVerified },
+            process.env.JWT_SECRET,
+            { expiresIn: "3d" }
+        );
 
-        let successResponse = createSuccess(200, "User Logged In Successfully")
-        res.
-            cookie("access_token", token, {
-                httpOnly: true
-            }).status(200).json({
-                ...successResponse,
-                data: userDetails
+        const { password: _, otp, otpExpiry, ...userDetails } = user._doc;
+
+        const successRes = createSuccess(200, "Login successful", userDetails);
+
+        res
+            .cookie("access_token", token, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === "production",
+                sameSite: "strict",
+                maxAge: 3 * 24 * 60 * 60 * 1000, // 3 days
             })
+            .status(200)
+            .json(successRes);
     } catch (error) {
-        next(error)
+        next(error);
     }
-}
+};
 
+// -------------------
+// LOGOUT
+// -------------------
 export const logout = (req, res, next) => {
     try {
-        res.clearCookie("access_token", {
-            httpOnly: true,
-            sameSite: "none",
-            secure: true
-        }).status(200).json(createSuccess(200, "User Logged Out Successfully"));
-
+        res
+            .clearCookie("access_token", {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === "production",
+                sameSite: "strict",
+            })
+            .status(200)
+            .json(createSuccess(200, "Logged out successfully"));
     } catch (error) {
         next(error);
     }
-}
+};
+
+// -------------------
+// GET SINGLE USER
+// -------------------
 export const getUser = async (req, res, next) => {
     try {
-        const username = req.params.username;
+        const { username } = req.params;
 
-        console.log(username, "username");
+        const user = await Users.findOne({ username }).select("-password -otp -otpExpiry");
 
-        const user = await Users.findOne({ username });
+        if (!user) return next(createError(404, "User not found"));
 
-        if (!user) {
-            return next(createError(404, "User not found!"));
-        }
-
-        const { password, ...userDetails } = user._doc;
-
-        const successRes = createSuccess(200, "User fetched successfully");
-        res.status(200).json({
-            ...successRes,
-            data: userDetails
-        });
-
+        res.status(200).json(createSuccess(200, "User fetched successfully", user));
     } catch (error) {
         next(error);
     }
-}
+};
 
+// -------------------
+// GET ALL USERS
+// -------------------
 export const getUsers = async (req, res, next) => {
     try {
-        const users = await Users.find();
-        const successRes = createSuccess(200, "Users fetched successfully");
-        res.status(200).json({
-            ...successRes,
-            data: users
-        });
+        const users = await Users.find().select("-password -otp -otpExpiry");
+        res.status(200).json(createSuccess(200, "Users fetched successfully", users));
     } catch (error) {
         next(error);
     }
-}
+};
 
+// -------------------
+// UPDATE USER
+// -------------------
 export const updateUser = async (req, res, next) => {
     try {
         const userId = req.params.id;
@@ -189,19 +197,17 @@ export const updateUser = async (req, res, next) => {
             updatedData.profilePic = result.secure_url;
         }
 
-        const updatedUser = await Users.findByIdAndUpdate(userId, updatedData, { new: true });
+        const updatedUser = await Users.findByIdAndUpdate(userId, updatedData, {
+            new: true,
+            runValidators: true,
+        }).select("-password -otp -otpExpiry");
 
-        if (!updatedUser) {
-            return next(createError(404, "User not found!"));
-        }
+        if (!updatedUser) return next(createError(404, "User not found"));
 
-        const successRes = createSuccess(200, "User updated successfully");
-        res.status(200).json({
-            ...successRes,
-            data: updatedUser
-        });
-
+        res
+            .status(200)
+            .json(createSuccess(200, "User updated successfully", updatedUser));
     } catch (error) {
         next(error);
     }
-}
+};

@@ -4,16 +4,20 @@ import dotenv from "dotenv"
 import mongoose from "mongoose"
 import helmet from "helmet"
 import { authRoute } from "./Routes/authRoute.js"
+import apiRouter from "./Routes/geminiApiRoute.js"
 
 dotenv.config()
 
 let app = express()
 
 app.use(express.json())
-app.use(cors())
+app.use(cors({
+    origin: true,
+    credentials: true,
+}));
 app.use(helmet())
-
 app.use("/api/auth", authRoute)
+app.use("/api/geminiApi", apiRouter)
 
 app.listen(process.env.PORT, (req, res) => {
     console.log("Server is Running on Port Number: " + process.env.PORT)

@@ -1,5 +1,6 @@
+// src/pages/Login.jsx
 import React, { useState } from "react";
-import { UserRound, Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, Loader2, LogIn } from "lucide-react";
 import axios from "axios";
 import { ToastContainer } from "react-toastify";
 import { showToast } from "../utils/commonFunctions.jsx";
@@ -8,12 +9,11 @@ import { baseUrl } from "../utils/baseUrl.jsx";
 import { useDispatch } from "react-redux";
 import { addUser, setLoading } from "../features/userSlice.js";
 
-const Register = () => {
+const Login = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
 
     const [credentials, setCredentials] = useState({
-        username: "",
         email: "",
         password: "",
     });
@@ -21,43 +21,55 @@ const Register = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
-    const togglePasswordVisibility = () => setShowPassword(prev => !prev);
+    const togglePasswordVisibility = () => setShowPassword((prev) => !prev);
 
     const handleChange = (e) => {
         const { id, value } = e.target;
-        setCredentials(prev => ({ ...prev, [id]: value }));
+        setCredentials((prev) => ({ ...prev, [id]: value }));
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const { username, email, password } = credentials;
+        const { email, password } = credentials;
 
-        // Validations
-        if (!username || !email || !password) return showToast("All fields are required", "error", "dark");
-        if (password.length < 6) return showToast("Password must be at least 6 characters", "error", "dark");
-        if (!email.endsWith("@gmail.com")) return showToast("Email must be a Gmail address", "error", "dark");
+        if (!email || !password)
+            return showToast("All fields are required", "error", "dark");
 
         setIsLoading(true);
         dispatch(setLoading(true));
 
         try {
-            const payload = { username, email, password };
-            localStorage.setItem("email", email);
+            const res = await axios.post(`${baseUrl}auth/login`, credentials, {
+                withCredentials: true,
+            });
 
-            const res = await axios.post(`${baseUrl}auth/register`, payload);
-            showToast(res.data.message, "success", "secondary");
-            navigate("/verifyOtp");
+            showToast(res.data.message || "Login successful!", "success", "light");
+
+            dispatch(
+                addUser({
+                    username: res.data.username,
+                    email: res.data.email,
+                })
+            );
+
+            navigate("/dashboard");
         } catch (err) {
-            showToast(err.response?.data?.message || err.message || "Registration failed.", "error", "accent");
+            showToast(
+                err.response?.data?.message || "Invalid credentials",
+                "error",
+                "dark"
+            );
         } finally {
             setIsLoading(false);
             dispatch(setLoading(false));
         }
     };
 
-    // Tailwind classes for consistent styling
-    const inputWrapperClass = "col-span-1 sm:col-span-2 flex items-center border border-gray-700/80 rounded-xl px-4 py-3 bg-dark transition duration-300 shadow-inner shadow-gray-900 focus-within:ring-2 focus-within:ring-secondary focus-within:border-secondary";
-    const inputBaseClass = "ml-3 w-full bg-transparent outline-none text-gray-100 placeholder-gray-500";
+    // Shared style constants
+    const inputWrapperClass =
+        "col-span-1 sm:col-span-2 flex items-center border border-gray-700/80 rounded-xl px-4 py-3 bg-dark transition duration-300 shadow-inner shadow-gray-900 focus-within:ring-2 focus-within:ring-secondary focus-within:border-secondary";
+    const inputBaseClass =
+        "ml-3 w-full bg-transparent outline-none text-gray-100 placeholder-gray-500";
     const iconClass = "text-secondary/80 group-focus-within:text-secondary";
 
     return (
@@ -67,32 +79,21 @@ const Register = () => {
             <div className="bg-dark w-full max-w-lg p-10 rounded-3xl shadow-[0_0_80px_rgba(78,205,196,0.1),0_0_20px_rgba(255,107,107,0.15)] border border-gray-800">
                 {/* Header */}
                 <h2 className="text-4xl font-extrabold text-center mb-10 tracking-wide bg-clip-text text-transparent bg-gradient-to-r from-secondary to-accent">
-                    Create HealthMate Account
+                    Welcome Back 👋
                 </h2>
+                <p className="text-center text-gray-400 mb-8">
+                    Login to your <span className="text-accent font-semibold">HealthMate</span> account
+                </p>
 
                 {/* Form */}
                 <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                    {/* Username */}
-                    <div className={`${inputWrapperClass} col-span-2 group`}>
-                        <UserRound className={iconClass} size={20} />
-                        <input
-                            type="text"
-                            id="username"
-                            placeholder="Username"
-                            value={credentials.username}
-                            onChange={handleChange}
-                            className={inputBaseClass}
-                            autoComplete="off"
-                        />
-                    </div>
-
                     {/* Email */}
                     <div className={`${inputWrapperClass} col-span-2 group`}>
                         <Mail className={iconClass} size={20} />
                         <input
                             type="email"
                             id="email"
-                            placeholder="Email (Gmail Only)"
+                            placeholder="Enter your Gmail"
                             value={credentials.email}
                             onChange={handleChange}
                             className={inputBaseClass}
@@ -106,11 +107,11 @@ const Register = () => {
                         <input
                             type={showPassword ? "text" : "password"}
                             id="password"
-                            placeholder="Password (min 6 characters)"
+                            placeholder="Enter your password"
                             value={credentials.password}
                             onChange={handleChange}
                             className={inputBaseClass}
-                            autoComplete="new-password"
+                            autoComplete="current-password"
                         />
                         <button
                             type="button"
@@ -128,19 +129,40 @@ const Register = () => {
                             type="submit"
                             disabled={isLoading}
                             className={`w-full py-4 rounded-xl text-lg font-extrabold tracking-wider transition duration-300 flex items-center justify-center gap-2 ${isLoading
-                                ? "bg-secondary/40 text-gray-400 cursor-not-allowed shadow-none"
-                                : "bg-accent hover:bg-secondary text-dark shadow-2xl shadow-accent/40 hover:shadow-secondary/40"
+                                    ? "bg-secondary/40 text-gray-400 cursor-not-allowed shadow-none"
+                                    : "bg-accent hover:bg-secondary text-dark shadow-2xl shadow-accent/40 hover:shadow-secondary/40"
                                 }`}
                         >
-                            {isLoading ? <><Loader2 className="animate-spin h-5 w-5" /> Processing...</> : "Create HealthMind Account"}
+                            {isLoading ? (
+                                <>
+                                    <Loader2 className="animate-spin h-5 w-5" /> Logging in...
+                                </>
+                            ) : (
+                                <>
+                                    <LogIn size={22} />
+                                    Login to HealthMate
+                                </>
+                            )}
                         </button>
                     </div>
 
-                    {/* Login Link */}
+                    {/* Links */}
                     <div className="col-span-2 text-center text-sm text-gray-400 mt-4">
-                        Already have an account?{" "}
-                        <Link to="/login" className="text-secondary hover:text-accent font-semibold transition duration-200">
-                            Login here
+                        Don’t have an account?{" "}
+                        <Link
+                            to="/register"
+                            className="text-secondary hover:text-accent font-semibold transition duration-200"
+                        >
+                            Register here
+                        </Link>
+                    </div>
+
+                    <div className="col-span-2 text-center text-sm mt-2">
+                        <Link
+                            to="/forgot-password"
+                            className="text-gray-400 hover:text-secondary transition duration-200"
+                        >
+                            Forgot Password?
                         </Link>
                     </div>
                 </form>
@@ -149,4 +171,4 @@ const Register = () => {
     );
 };
 
-export default Register;
+export default Login;
