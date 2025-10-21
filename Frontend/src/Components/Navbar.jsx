@@ -46,6 +46,7 @@ const Navbar = () => {
 
             dispatch(removeUser());
             localStorage.removeItem("user");
+            window.location.href = "/";
             showToast("Logged out successfully", "success", "light");
         } catch (err) {
             console.error("Logout Error:", err);
