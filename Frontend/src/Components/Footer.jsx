@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Shield, Mail, Phone, MapPin, Linkedin, Twitter, Instagram, ChevronDown } from "lucide-react";
+import { Shield, Mail, Phone, MapPin, Linkedin, Twitter, Instagram, ChevronDown, Facebook } from "lucide-react";
 
 // Enhanced Footer Component (Replacing the stub)
 const Footer = () => {
@@ -33,9 +33,9 @@ const Footer = () => {
                     </p>
                     {/* Social Icons with enhanced hover effects */}
                     <div className="flex gap-3 mt-2">
-                        <a href="#" className="p-2 border border-gray-700 rounded-full hover:bg-secondary/20 hover:text-secondary transition duration-300" aria-label="Twitter"><Twitter size={18} /></a>
-                        <a href="#" className="p-2 border border-gray-700 rounded-full hover:bg-secondary/20 hover:text-secondary transition duration-300" aria-label="LinkedIn"><Linkedin size={18} /></a>
-                        <a href="#" className="p-2 border border-gray-700 rounded-full hover:bg-secondary/20 hover:text-secondary transition duration-300" aria-label="Instagram"><Instagram size={18} /></a>
+                        <a href="https://facebook.com/NoorPublicSchool" target="_blank" className="p-2 border border-gray-700 rounded-full hover:bg-secondary/20 hover:text-secondary transition duration-300" aria-label="Twitter"><Facebook size={18} /></a>
+                        <a href="https://linkedin.com/in/NoorPublicSchool" target="_blank" className="p-2 border border-gray-700 rounded-full hover:bg-secondary/20 hover:text-secondary transition duration-300" aria-label="LinkedIn"><Linkedin size={18} /></a>
+                        <a href="https://instagram.com/Noor_Public_School_Karachi" target="_blank" className="p-2 border border-gray-700 rounded-full hover:bg-secondary/20 hover:text-secondary transition duration-300" aria-label="Instagram"><Instagram size={18} /></a>
                     </div>
                 </div>
 
