@@ -1,4 +1,6 @@
-export const showToast = (message, type) => {
+import { toast } from "react-toastify";
+
+export const showToast = (message, type, theme) => {
   const options = {
     position: "top-right",
     autoClose: 1000,
@@ -6,7 +8,7 @@ export const showToast = (message, type) => {
     closeOnClick: true,
     pauseOnHover: true,
     draggable: true,
-    theme,
+    theme: theme || "light",
   };
 
   if (type === "success") {
