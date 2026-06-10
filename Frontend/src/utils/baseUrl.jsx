@@ -1,1 +1,1 @@
-export const baseUrl = "https://sibghathackathon.vercel.app/api/";
+export const baseUrl = "https://sibghatbackend.vercel.app/api/";
