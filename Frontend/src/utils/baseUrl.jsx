@@ -1,1 +1,1 @@
-export const baseUrl = "https://sibghatbackend.vercel.app/api/";
+export const baseUrl = "http://localhost:5000/api/";
